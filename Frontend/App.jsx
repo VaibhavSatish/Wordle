@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 
-const API = "http://localhost:8000/api";
+const API = "import.meta.env.VITE_API_URL";
 const WORD_LENGTH = 5;
 const MAX_ATTEMPTS = 6;
 
