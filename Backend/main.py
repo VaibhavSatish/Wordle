@@ -1,8 +1,6 @@
-from datetime import datetime
 from typing import Literal
 from fastapi import FastAPI, HTTPException
 from words import generate_words
-import uvicorn
 import random
 from pydantic import BaseModel
 import datetime
@@ -12,10 +10,10 @@ from fastapi.middleware.cors import CORSMiddleware
 WORD_LENGTH = 5
 MAX_ATTEMPTS = 6
 VALID_WORDS = generate_words(WORD_LENGTH)
-LetterState = Literal['Correct', 'In Word', 'Not_Used']
+LetterState = Literal['correct', 'present', 'absent']
 games = {}
 
-app = FastAPI(title = "Wordle API")
+app = FastAPI(title="Wordle API")
 
 app.add_middleware(
     CORSMiddleware,
@@ -24,18 +22,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/")
-def root():
-    print(VALID_WORDS)
-    return {"message": "Wordle Backend is Alive"}
-
 class CreateNewGame(BaseModel):
-    game_id: int
+    game_id: str
     word_length: int
     max_attempts: int
 
 class GuessRequest(BaseModel):
-    game_id: int
+    game_id: str   # ← fix 1: was int, UUIDs are strings
     guess: str
 
 class GuessResponse(BaseModel):
@@ -46,84 +39,77 @@ class GuessResponse(BaseModel):
     game_over: bool
 
 class AnswerResponse(BaseModel):
-    answer: str
+    word: str      # ← fix 3: was "answer", frontend expects "word"
 
 def set_new_target_word():
     seed = datetime.date.today().isoformat()
     rng = random.Random(seed)
-    target_word = rng.choice(VALID_WORDS)
-    return target_word
+    return rng.choice(VALID_WORDS)
 
 def evaluate_guess(guess: str, target_word: str) -> list[LetterState]:
-    result: list[LetterState] = ["Not Used"] * len(guess)
+    result: list[LetterState] = ["absent"] * len(guess)
     answer_chars = list(target_word)
+
+    # First pass: exact matches
     for i in range(len(guess)):
         if guess[i] == target_word[i]:
-            result[i] = LetterState[0]
+            result[i] = "correct"   # ← fix 2: was LetterState[0]
             answer_chars[i] = None
 
+    # Second pass: wrong position
     for j in range(len(guess)):
-        if result[j] == "Correct":
+        if result[j] == "correct":
             continue
         if guess[j] in answer_chars:
-            result[j] = LetterState[1]
+            result[j] = "present"   # ← fix 2: was LetterState[1]
             answer_chars[answer_chars.index(guess[j])] = None
+
     return result
 
-@app.get("/api/game/new", response_model = CreateNewGame)
-def create_new_game(daily = True):
-    word = ""
-    if daily:
-        word = set_new_target_word()
-    else:
-        word = random.choice(VALID_WORDS)
-
+@app.get("/api/game/new", response_model=CreateNewGame)
+def create_new_game(daily: bool = True):
+    word = set_new_target_word() if daily else random.choice(VALID_WORDS)
     game_id = str(uuid.uuid4())
-    games[game_id] = {"word": word, "attempts_used": 0, "is_finished":False}
-    return CreateNewGame(game_id = game_id, word_length=WORD_LENGTH, max_attempts=MAX_ATTEMPTS)
+    games[game_id] = {"word": word, "attempts_used": 0, "is_finished": False}
+    return CreateNewGame(game_id=game_id, word_length=WORD_LENGTH, max_attempts=MAX_ATTEMPTS)
 
 @app.post("/api/game/guess", response_model=GuessResponse)
 def submit_guess(request: GuessRequest):
-   if request.game_id not in games:
+    if request.game_id not in games:
         raise HTTPException(status_code=404, detail="Game not found")
-   else:
-        game = games[request.game_id]
-        if game["is_finished"]:
-            raise HTTPException(status_code=400, detail="Game is already finished")
-        if len(request.guess) != WORD_LENGTH:
-            raise HTTPException(status_code=400, detail=f"Guess must be {WORD_LENGTH} letters long")
-        if request.guess not in VALID_WORDS:
-            raise HTTPException(status_code=400, detail="Guess is not a valid word")
 
-        game["attempts_used"] += 1
-        result = evaluate_guess(request.guess, game["word"])
-        is_correct = request.guess == game["word"]
-        game_over = is_correct or game["attempts_used"] >= MAX_ATTEMPTS
-        if game_over:
-            game["is_finished"] = True
+    game = games[request.game_id]
+    if game["is_finished"]:
+        raise HTTPException(status_code=400, detail="Game is already finished")
+    if len(request.guess) != WORD_LENGTH:
+        raise HTTPException(status_code=400, detail=f"Guess must be {WORD_LENGTH} letters long")
+    if request.guess.lower() not in VALID_WORDS:
+        raise HTTPException(status_code=400, detail="Guess is not a valid word")
 
-        return GuessResponse(
-            result=result,
-            attempts_used=game["attempts_used"],
-            attempts_remaining=MAX_ATTEMPTS - game["attempts_used"],
-            is_correct=is_correct,
-            game_over=game_over
-        )
+    game["attempts_used"] += 1
+    result = evaluate_guess(request.guess.lower(), game["word"])
+    is_correct = request.guess.lower() == game["word"]
+    game_over = is_correct or game["attempts_used"] >= MAX_ATTEMPTS
+    if game_over:
+        game["is_finished"] = True
+
+    return GuessResponse(
+        result=result,
+        attempts_used=game["attempts_used"],
+        attempts_remaining=MAX_ATTEMPTS - game["attempts_used"],
+        is_correct=is_correct,
+        game_over=game_over,
+    )
 
 @app.get("/api/game/answer/{game_id}", response_model=AnswerResponse)
-def reveal_answer(game_id: str) -> AnswerResponse:
+def reveal_answer(game_id: str):
     if game_id not in games:
         raise HTTPException(status_code=404, detail="Game not found")
-    else:
-        game = games[game_id]
-        if not game["is_finished"]:
-            raise HTTPException(status_code=400, detail="Game is not finished yet")
-        if not game:
-            raise HTTPException(status_code=404, detail="Game not found")
-        return AnswerResponse(answer=game["word"])
+    game = games[game_id]
+    if not game["is_finished"]:
+        raise HTTPException(status_code=400, detail="Game is not finished yet")
+    return AnswerResponse(word=game["word"])
 
 @app.get("/")
 def health_check():
     return {"message": "Wordle Backend is Alive"}
-    
-
