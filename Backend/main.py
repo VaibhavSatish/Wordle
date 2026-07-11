@@ -17,7 +17,7 @@ app = FastAPI(title="Wordle API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173", "https://wordle-nine-puce.vercel.app/"],
+    allow_origins=["http://localhost:3000", "http://localhost:5173", "https://wordle-nine-puce.vercel.app"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
