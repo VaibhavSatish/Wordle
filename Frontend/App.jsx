@@ -286,7 +286,7 @@ export default function App() {
     <div className="app">
       <header className="header">
         <h1 className="header-title">WORDLE</h1>
-        <p className="header-sub">Guess the 5-letter word</p>
+        <p className="header-sub">Guess the {WORD_LENGTH}-letter word</p>
       </header>
 
       <Toast message={toast} />
