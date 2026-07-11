@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
-const WORD_LENGTH = 7;
+const WORD_LENGTH = 6;
 const MAX_ATTEMPTS = 6;
 
 const KEYBOARD_ROWS = [
@@ -173,6 +173,24 @@ export default function App() {
       .then((data) => setAnswer(data.word));
   }, []);
 
+  //── Play Again Button ────────────────────────────────────────────
+  const resetGame = useCallback(async () => {
+  setGuesses([]);
+  setResults([]);
+  setCurrentGuess("");
+  setGameOver(false);
+  setWon(false);
+  setAnswer(null);
+  setLetterStates({});
+  setToast("");
+  setLoading(true);
+
+  const res = await fetch(`${API}/game/new?daily=false`);
+  const data = await res.json();
+  setGameId(data.game_id);
+  setLoading(false);
+}, []);
+
   // ── Submit guess ────────────────────────────────────────────────────────────
   const submitGuess = useCallback(async () => {
     if (currentGuess.length !== WORD_LENGTH) {
@@ -282,12 +300,15 @@ export default function App() {
           shakeRow={shakeRow}
         />
 
-        {gameOver && answer && (
-          <div className="result-section">
-            <p className="result-label">{won ? "You got it!" : "The word was"}</p>
-            <DefinitionPanel word={answer} />
-          </div>
-        )}
+       {gameOver && answer && (
+        <div className="result-section">
+          <p className="result-label">{won ? "You got it!" : "The word was"}</p>
+          <DefinitionPanel word={answer} />
+          <button className="play-again-btn" onClick={resetGame}>
+            Play Again
+          </button>
+        </div>
+      )}
       </main>
 
       <Keyboard letterStates={letterStates} onKey={handleKey} />

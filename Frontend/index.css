@@ -332,3 +332,22 @@ body {
   .key { height: 50px; min-width: 30px; }
   .key--wide { min-width: 46px; }
 }
+
+/* ── Play Again Button ──────────────────────────────────────────────────────────── */
+.play-again-btn {
+  margin-top: 8px;
+  padding: 12px 32px;
+  background: var(--correct);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.08s;
+}
+
+.play-again-btn:hover  { opacity: 0.88; }
+.play-again-btn:active { transform: scale(0.96); }
