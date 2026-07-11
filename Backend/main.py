@@ -7,7 +7,7 @@ import datetime
 import uuid
 from fastapi.middleware.cors import CORSMiddleware
 
-WORD_LENGTH = 6
+WORD_LENGTH = 5
 MAX_ATTEMPTS = 6
 VALID_WORDS = generate_words(WORD_LENGTH)
 LetterState = Literal['correct', 'present', 'absent']
