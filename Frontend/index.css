@@ -192,15 +192,17 @@ body {
 
 .key {
   height: 52px;
-  flex: 1;
-  max-width: 43px;
+  /* Use a fixed width and prevent flex-stretching */
+  width: 60px;
+  flex: 0 0 auto;
+  max-width: 100px;
   padding: 0 2px;
   background: var(--key-bg);
   color: var(--key-text);
   border: none;
   border-radius: var(--radius);
   font-family: 'Space Grotesk', sans-serif;
-  font-size: 0.75rem;
+  font-size: 1.25rem;
   font-weight: 700;
   cursor: pointer;
   transition: background 0.2s, transform 0.08s;
@@ -211,11 +213,17 @@ body {
 }
 
 .key:active { transform: scale(0.94); }
-.key--wide  { max-width: 65px; font-size: 0.65rem; flex: 1.5; }
+
+.key--wide { 
+  width: 62px;
+  max-width: 65px; 
+  font-size: 0.65rem; 
+  flex: 0 0 auto; 
+}
 
 .key--correct { background: var(--correct); }
 .key--present { background: var(--present); }
-.key--absent  { background: var(--absent); }
+.key--absent  { background: #000000; }
 
 /* ── Definition Panel ────────────────────────────────────────────────────── */
 .result-section {
