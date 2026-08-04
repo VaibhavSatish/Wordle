@@ -163,7 +163,6 @@ export default function App() {
   const startGame = useCallback(async (length) => {
     setLoading(true);
     try {
-      // Pass the selected word length to your backend if supported (e.g. ?length=...)
       const res = await fetch(`${API}/game/new?length=${length}`);
       const data = await res.json();
       setNumLetters(length);
@@ -299,7 +298,7 @@ export default function App() {
   }
 
   return (
-    <div className="app">
+    <div className={`app ${gameOver ? "game-over" : ""}`}>
       <header className="header">
         <h1 className="header-title">WORDLE</h1>
         <p className="header-sub">Guess the {numLetters}-letter word</p>

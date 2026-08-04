@@ -15,8 +15,8 @@
   --key-bg:      #334155;
   --key-text:    #F8FAFC;
 
-  /* Use clamp to allow tiles to scale dynamically on mobile screens */
-  --tile-size:   clamp(40px, 12vw, 62px);
+  /* Independent dynamic tile sizing */
+  --tile-size:   clamp(60px, min(11vw, 9vh), 52px);
   --tile-gap:    6px;
   --radius:      4px;
 }
@@ -24,24 +24,29 @@
 /* ── Reset ───────────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
 body {
   background: var(--bg);
   color: var(--text);
   font-family: 'Space Grotesk', system-ui, sans-serif;
-  min-height: 100dvh;
   display: flex;
   justify-content: center;
-  overflow-x: hidden;
 }
 
 /* ── Layout ──────────────────────────────────────────────────────────────── */
 .app {
   width: 100%;
   max-width: 500px;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
   align-items: center;
-  padding: 0 8px 24px;
+  padding: 0 8px 16px;
   margin: 0 auto;
 }
 
@@ -50,40 +55,46 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 24px;
+  justify-content: center;
+  gap: 12px;
   width: 100%;
-  padding: 16px 0;
+  min-height: 0;
+  padding: 4px 0;
+  overflow-y: auto;
 }
 
 /* ── Header ──────────────────────────────────────────────────────────────── */
 .header {
   width: 100%;
   text-align: center;
-  padding: 20px 0 16px;
+  padding: 12px 0 8px;
   border-bottom: 1px solid var(--border);
-  margin-bottom: 8px;
+  margin-bottom: 2px;
+  flex-shrink: 0;
 }
 
 .header-title {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 2rem;
+  font-size: 1.75rem;
   font-weight: 700;
   letter-spacing: 0.25em;
   color: var(--text);
 }
 
 .header-sub {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: var(--text-muted);
   letter-spacing: 0.08em;
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
-/* ── Board ───────────────────────────────────────────────────────────────── */
+/* ── Board & Tiles (Independent Dynamic Sizing) ───────────────────────────── */
 .board {
   display: flex;
   flex-direction: column;
   gap: var(--tile-gap);
+  flex-shrink: 1;
+  align-self: center;
 }
 
 .board-row {
@@ -103,7 +114,6 @@ body {
   75%       { transform: translateX(4px); }
 }
 
-/* ── Tiles ───────────────────────────────────────────────────────────────── */
 .tile {
   width: var(--tile-size);
   height: var(--tile-size);
@@ -130,7 +140,7 @@ body {
   align-items: center;
   justify-content: center;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 1.75rem;
+  font-size: 1.5rem;
   font-weight: 700;
   border-radius: var(--radius);
   backface-visibility: hidden;
@@ -148,7 +158,6 @@ body {
   color: var(--text);
 }
 
-/* filled (current row, letter typed) */
 .tile--filled .tile-front {
   border-color: var(--text-muted);
   animation: pop 0.1s ease;
@@ -160,49 +169,48 @@ body {
   100% { transform: scale(1); }
 }
 
-/* revealed states (past rows) */
 .tile--correct .tile-back { background: var(--correct); border-color: var(--correct); }
 .tile--present .tile-back { background: var(--present); border-color: var(--present); }
 .tile--absent  .tile-back { background: var(--absent);  border-color: var(--absent); }
 
-/* Stagger the flip per tile */
 .board-row .tile:nth-child(1) .tile-inner { transition-delay: 0ms; }
 .board-row .tile:nth-child(2) .tile-inner { transition-delay: 120ms; }
 .board-row .tile:nth-child(3) .tile-inner { transition-delay: 240ms; }
 .board-row .tile:nth-child(4) .tile-inner { transition-delay: 360ms; }
 .board-row .tile:nth-child(5) .tile-inner { transition-delay: 480ms; }
 
-/* ── Keyboard ────────────────────────────────────────────────────────────── */
+/* ── Keyboard (Fixed dimensions independent of grid) ─────────────────────── */
 .keyboard {
   width: 100%;
   max-width: 500px;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding-top: 8px;
+  padding-bottom: env(safe-area-inset-bottom);
   touch-action: manipulation;
+  flex-shrink: 0;
+  flex-grow: 0;
 }
 
 .keyboard-row {
   display: flex;
   justify-content: center;
-  gap: 4px;
+  gap: 6px;
   width: 100%;
 }
 
 .key {
-  height: 52px;
-  /* Use a fixed width and prevent flex-stretching */
-  width: 60px;
-  flex: 0 0 auto;
-  max-width: 100px;
-  padding: 0 2px;
+  height: 54px;
+  width: 38px;
+  flex: 1;
+  max-width: 44px;
+  padding: 0;
   background: var(--key-bg);
   color: var(--key-text);
   border: none;
   border-radius: var(--radius);
   font-family: 'Space Grotesk', sans-serif;
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   font-weight: 700;
   cursor: pointer;
   transition: background 0.2s, transform 0.08s;
@@ -215,15 +223,24 @@ body {
 .key:active { transform: scale(0.94); }
 
 .key--wide { 
-  width: 62px;
   max-width: 65px; 
-  font-size: 0.65rem; 
-  flex: 0 0 auto; 
+  flex: 1.5;
+  font-size: 0.7rem; 
 }
 
 .key--correct { background: var(--correct); }
 .key--present { background: var(--present); }
 .key--absent  { background: #000000; }
+
+/* ── Keyboard Toggle for Results Panel ───────────────────────────────────── */
+.game-over .keyboard {
+  display: none !important;
+}
+
+.game-over.app {
+  justify-content: center;
+  gap: 16px;
+}
 
 /* ── Definition Panel ────────────────────────────────────────────────────── */
 .result-section {
@@ -231,7 +248,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   animation: slide-up 0.4s ease;
 }
 
@@ -241,7 +258,7 @@ body {
 }
 
 .result-label {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--text-muted);
@@ -252,15 +269,15 @@ body {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 20px 24px;
+  padding: 16px 20px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .def-word {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.15em;
@@ -272,7 +289,7 @@ body {
 
 .def-phonetic {
   font-family: 'Space Grotesk', sans-serif;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 400;
   letter-spacing: 0;
   color: var(--text-muted);
@@ -280,7 +297,7 @@ body {
 }
 
 .def-pos {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -288,19 +305,19 @@ body {
 }
 
 .def-definition {
-  font-size: 0.95rem;
-  line-height: 1.55;
+  font-size: 0.85rem;
+  line-height: 1.45;
   color: var(--text);
 }
 
 .def-example {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: var(--text-muted);
   font-style: italic;
-  line-height: 1.5;
+  line-height: 1.4;
   border-left: 2px solid var(--border);
-  padding-left: 12px;
-  margin-top: 4px;
+  padding-left: 10px;
+  margin-top: 2px;
 }
 
 .def-loading, .def-error {
@@ -341,16 +358,16 @@ body {
   letter-spacing: 0.1em;
 }
 
-/* ── Play Again Button ──────────────────────────────────────────────────────────── */
+/* ── Play Again Button ──────────────────────────────────────────────────── */
 .play-again-btn {
-  margin-top: 8px;
-  padding: 12px 32px;
+  margin-top: 4px;
+  padding: 10px 24px;
   background: var(--correct);
   color: #fff;
   border: none;
   border-radius: var(--radius);
   font-family: 'Space Grotesk', sans-serif;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   cursor: pointer;
