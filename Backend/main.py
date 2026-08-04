@@ -1,5 +1,5 @@
 from typing import Literal
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Query, HTTPException
 from words import generate_words
 import random
 from pydantic import BaseModel
@@ -7,9 +7,7 @@ import datetime
 import uuid
 from fastapi.middleware.cors import CORSMiddleware
 
-WORD_LENGTH = 5
 MAX_ATTEMPTS = 6
-VALID_WORDS = generate_words(WORD_LENGTH)
 LetterState = Literal['correct', 'present', 'absent']
 games = {}
 
@@ -28,7 +26,7 @@ class CreateNewGame(BaseModel):
     max_attempts: int
 
 class GuessRequest(BaseModel):
-    game_id: str   # ← fix 1: was int, UUIDs are strings
+    game_id: str  
     guess: str
 
 class GuessResponse(BaseModel):
@@ -39,9 +37,9 @@ class GuessResponse(BaseModel):
     game_over: bool
 
 class AnswerResponse(BaseModel):
-    word: str      # ← fix 3: was "answer", frontend expects "word"
+    word: str      
 
-def set_new_target_word():
+def set_new_target_word(VALID_WORDS: list[str]) -> str:
     seed = datetime.date.today().isoformat()
     rng = random.Random(seed)
     return rng.choice(VALID_WORDS)
@@ -53,7 +51,7 @@ def evaluate_guess(guess: str, target_word: str) -> list[LetterState]:
     # First pass: exact matches
     for i in range(len(guess)):
         if guess[i] == target_word[i]:
-            result[i] = "correct"   # ← fix 2: was LetterState[0]
+            result[i] = "correct"
             answer_chars[i] = None
 
     # Second pass: wrong position
@@ -61,16 +59,27 @@ def evaluate_guess(guess: str, target_word: str) -> list[LetterState]:
         if result[j] == "correct":
             continue
         if guess[j] in answer_chars:
-            result[j] = "present"   # ← fix 2: was LetterState[1]
+            result[j] = "present"
             answer_chars[answer_chars.index(guess[j])] = None
 
     return result
 
 @app.get("/api/game/new", response_model=CreateNewGame)
-def create_new_game(daily: bool = True):
-    word = set_new_target_word() if daily else random.choice(VALID_WORDS)
+def create_new_game(daily: bool = True, length: int = Query(5, ge=4, le=8)):
+    WORD_LENGTH = length
+    VALID_WORDS = generate_words(WORD_LENGTH)
+    word = set_new_target_word(VALID_WORDS) if daily else random.choice(VALID_WORDS)
     game_id = str(uuid.uuid4())
-    games[game_id] = {"word": word, "attempts_used": 0, "is_finished": False}
+    
+    # Store word_length and valid_words in the game session
+    games[game_id] = {
+        "word": word,
+        "word_length": WORD_LENGTH,
+        "valid_words": VALID_WORDS,
+        "attempts_used": 0,
+        "is_finished": False
+    }
+    
     return CreateNewGame(game_id=game_id, word_length=WORD_LENGTH, max_attempts=MAX_ATTEMPTS)
 
 @app.post("/api/game/guess", response_model=GuessResponse)
@@ -81,6 +90,10 @@ def submit_guess(request: GuessRequest):
     game = games[request.game_id]
     if game["is_finished"]:
         raise HTTPException(status_code=400, detail="Game is already finished")
+        
+    WORD_LENGTH = game["word_length"]
+    VALID_WORDS = game["valid_words"]
+
     if len(request.guess) != WORD_LENGTH:
         raise HTTPException(status_code=400, detail=f"Guess must be {WORD_LENGTH} letters long")
     if request.guess.lower() not in VALID_WORDS:

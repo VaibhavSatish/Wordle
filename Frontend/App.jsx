@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import StartScreen from './StartScreen';
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
-const WORD_LENGTH = 5;
 const MAX_ATTEMPTS = 6;
 
 const KEYBOARD_ROWS = [
@@ -27,19 +27,19 @@ function Tile({ letter, state, revealed, delay = 0 }) {
 }
 
 // ── Board ────────────────────────────────────────────────────────────────────
-function Board({ guesses, currentGuess, results, currentRow, shakeRow }) {
+function Board({ guesses, currentGuess, results, currentRow, shakeRow, wordLength}) {
   const rows = Array.from({ length: MAX_ATTEMPTS }, (_, r) => {
     const isCurrentRow = r === currentRow;
     const isPastRow = r < currentRow;
     const letters = isPastRow
       ? guesses[r].split("")
       : isCurrentRow
-      ? currentGuess.split("").concat(Array(WORD_LENGTH).fill("")).slice(0, WORD_LENGTH)
-      : Array(WORD_LENGTH).fill("");
+      ? currentGuess.split("").concat(Array(wordLength).fill("")).slice(0, wordLength)
+      : Array(wordLength).fill("");
 
     return (
       <div key={r} className={`board-row ${shakeRow === r ? "board-row--shake" : ""}`}>
-        {Array.from({ length: WORD_LENGTH }, (_, c) => (
+        {Array.from({ length: wordLength }, (_, c) => (
           <Tile
             key={c}
             letter={letters[c] || ""}
@@ -51,8 +51,14 @@ function Board({ guesses, currentGuess, results, currentRow, shakeRow }) {
       </div>
     );
   });
-
-  return <div className="board">{rows}</div>;
+  return (
+    <div 
+      className="board" 
+      style={{ gridTemplateColumns: `repeat(${wordLength}, 1fr)` }}
+    >
+      {rows}
+    </div>
+  );
 }
 
 // ── Key ──────────────────────────────────────────────────────────────────────
@@ -138,9 +144,12 @@ function Toast({ message }) {
 
 // ── App ───────────────────────────────────────────────────────────────────────
 export default function App() {
+  const [gameStarted, setGameStarted] = useState(false);
+  const [numLetters, setNumLetters] = useState(5);
+  
   const [gameId, setGameId] = useState(null);
-  const [guesses, setGuesses] = useState([]);      // completed guess strings
-  const [results, setResults] = useState([]);      // per-row letter state arrays
+  const [guesses, setGuesses] = useState([]);      
+  const [results, setResults] = useState([]);      
   const [currentGuess, setCurrentGuess] = useState("");
   const [gameOver, setGameOver] = useState(false);
   const [won, setWon] = useState(false);
@@ -148,17 +157,23 @@ export default function App() {
   const [letterStates, setLetterStates] = useState({});
   const [toast, setToast] = useState("");
   const [shakeRow, setShakeRow] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
-  // ── Start game ──────────────────────────────────────────────────────────────
-  useEffect(() => {
-    fetch(`${API}/game/new`)
-      .then((r) => r.json())
-      .then((data) => {
-        setGameId(data.game_id);
-        setLoading(false);
-      })
-      .catch(() => showToast("Could not connect to server."));
+  // ── Start game fetch (triggered by StartScreen) ──────────────────────────────
+  const startGame = useCallback(async (length) => {
+    setLoading(true);
+    try {
+      // Pass the selected word length to your backend if supported (e.g. ?length=...)
+      const res = await fetch(`${API}/game/new?length=${length}`);
+      const data = await res.json();
+      setNumLetters(length);
+      setGameId(data.game_id);
+      setGameStarted(true);
+    } catch {
+      showToast("Could not connect to server.");
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   function showToast(msg, duration = 2000) {
@@ -174,26 +189,21 @@ export default function App() {
   }, []);
 
   //── Play Again Button ────────────────────────────────────────────
-  const resetGame = useCallback(async () => {
-  setGuesses([]);
-  setResults([]);
-  setCurrentGuess("");
-  setGameOver(false);
-  setWon(false);
-  setAnswer(null);
-  setLetterStates({});
-  setToast("");
-  setLoading(true);
-
-  const res = await fetch(`${API}/game/new?daily=false`);
-  const data = await res.json();
-  setGameId(data.game_id);
-  setLoading(false);
-}, []);
+  const resetGame = useCallback(() => {
+    setGameStarted(false);
+    setGuesses([]);
+    setResults([]);
+    setCurrentGuess("");
+    setGameOver(false);
+    setWon(false);
+    setAnswer(null);
+    setLetterStates({});
+    setToast("");
+  }, []);
 
   // ── Submit guess ────────────────────────────────────────────────────────────
   const submitGuess = useCallback(async () => {
-    if (currentGuess.length !== WORD_LENGTH) {
+    if (currentGuess.length !== numLetters) {
       showToast("Not enough letters");
       setShakeRow(guesses.length);
       setTimeout(() => setShakeRow(null), 600);
@@ -222,7 +232,6 @@ export default function App() {
       setResults(newResults);
       setCurrentGuess("");
 
-      // Update keyboard colours — only upgrade state (correct > present > absent)
       const priority = { correct: 3, present: 2, absent: 1 };
       setLetterStates((prev) => {
         const next = { ...prev };
@@ -239,30 +248,29 @@ export default function App() {
       if (data.game_over) {
         setGameOver(true);
         setWon(data.is_correct);
-        // Wait for flip animations to finish before fetching answer
-        setTimeout(() => fetchAnswer(gameId), WORD_LENGTH * 120 + 400);
+        setTimeout(() => fetchAnswer(gameId), numLetters * 120 + 400);
         if (data.is_correct) {
-          setTimeout(() => showToast("Brilliant! 🎉", 3000), WORD_LENGTH * 120 + 500);
+          setTimeout(() => showToast("Brilliant! 🎉", 3000), numLetters * 120 + 500);
         } else {
-          setTimeout(() => showToast("Better luck next time.", 3000), WORD_LENGTH * 120 + 500);
+          setTimeout(() => showToast("Better luck next time.", 3000), numLetters * 120 + 500);
         }
       }
     } catch {
       showToast("Network error — is the server running?");
     }
-  }, [currentGuess, guesses, results, gameId, gameOver, fetchAnswer]);
+  }, [currentGuess, guesses, results, gameId, gameOver, fetchAnswer, numLetters]);
 
   // ── Key handler ─────────────────────────────────────────────────────────────
   const handleKey = useCallback((key) => {
-    if (gameOver) return;
+    if (gameOver || !gameStarted) return;
     if (key === "ENTER") {
       submitGuess();
     } else if (key === "⌫" || key === "BACKSPACE") {
       setCurrentGuess((g) => g.slice(0, -1));
-    } else if (/^[A-Za-z]$/.test(key) && currentGuess.length < WORD_LENGTH) {
+    } else if (/^[A-Za-z]$/.test(key) && currentGuess.length < numLetters) {
       setCurrentGuess((g) => g + key.toUpperCase());
     }
-  }, [gameOver, currentGuess, submitGuess]);
+  }, [gameOver, gameStarted, currentGuess, submitGuess, numLetters]);
 
   useEffect(() => {
     const onKeyDown = (e) => {
@@ -274,10 +282,18 @@ export default function App() {
   }, [handleKey]);
 
   // ── Render ──────────────────────────────────────────────────────────────────
-  if (loading) {
+  if (!gameStarted) {
     return (
       <div className="app">
-        <div className="loading">Connecting…</div>
+        {loading ? (
+          <div className="loading">Connecting…</div>
+        ) : (
+          <StartScreen 
+            numLetters={numLetters} 
+            setNumLetters={setNumLetters} 
+            onStart={startGame} 
+          />
+        )}
       </div>
     );
   }
@@ -286,7 +302,7 @@ export default function App() {
     <div className="app">
       <header className="header">
         <h1 className="header-title">WORDLE</h1>
-        <p className="header-sub">Guess the {WORD_LENGTH}-letter word</p>
+        <p className="header-sub">Guess the {numLetters}-letter word</p>
       </header>
 
       <Toast message={toast} />
@@ -298,6 +314,7 @@ export default function App() {
           results={results}
           currentRow={guesses.length}
           shakeRow={shakeRow}
+          wordLength={numLetters}
         />
 
        {gameOver && answer && (
