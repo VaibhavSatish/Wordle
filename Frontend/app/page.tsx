@@ -1,9 +1,9 @@
 'use client';
 import React, { useState, useEffect, useCallback } from "react";
-import StartScreen from '../StartScreen';
+import StartScreen from './components/StartScreen';
 import '../index.css'
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api";
 const MAX_ATTEMPTS = 6;
 
 const KEYBOARD_ROWS = [
