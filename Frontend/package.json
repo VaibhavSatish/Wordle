@@ -3,19 +3,19 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "concurrently -n \"api,ui\" -c \"cyan,magenta\" \"npm run api\" \"vite\"",
-    "api": "uvicorn main:app --reload --app-dir ../Backend",
-    "ui": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "dev": "concurrently -n \"api,ui\" -c \"cyan,magenta\" \"npm run api\" \"next dev\"",
+    "api": "uvicorn main:app --reload --app-dir ../Backend"
   },
   "dependencies": {
+    "next": "^15.0.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^4.3.1",
-    "concurrently": "^9.2.4",
-    "vite": "^5.4.1"
+    "@types/node": "20.17.6",
+    "@types/react": "^18.3.1",
+    "@types/react-dom": "^18.3.1",
+    "concurrently": "^8.2.2",
+    "typescript": "^5.0.0"
   }
 }
