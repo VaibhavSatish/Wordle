@@ -289,8 +289,6 @@ export default function App() {
           <div className="loading">Connecting…</div>
         ) : (
           <StartScreen 
-            numLetters={numLetters} 
-            setNumLetters={setNumLetters} 
             onStart={startGame} 
           />
         )}

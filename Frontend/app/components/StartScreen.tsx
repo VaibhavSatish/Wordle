@@ -2,7 +2,7 @@
 import React, {useState} from 'react';
 import './StartScreen.css';
 
-function StartScreen({ onStart }) {
+function StartScreen({onStart }) {
     const [numletters, setNumLetters] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
     const HandleClick = () => {
