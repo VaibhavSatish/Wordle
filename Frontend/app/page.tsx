@@ -1,7 +1,6 @@
 'use client';
 import React, { useState, useEffect, useCallback } from "react";
 import StartScreen from './components/StartScreen';
-import './components/index.css'
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 const MAX_ATTEMPTS = 6;
